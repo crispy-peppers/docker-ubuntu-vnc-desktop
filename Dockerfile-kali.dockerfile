@@ -4,9 +4,9 @@
 # base system
 ################################################################################
 
-FROM ubuntu:20.04 as system
+#FROM ubuntu:20.04 as system
 
-#FROM kalilinux/kali-rolling as system
+FROM kalilinux/kali-rolling as system
 
 CMD ["bash"]
 ENV DEBIAN_FRONTEND noninteractive
@@ -17,6 +17,9 @@ ENV DEBIAN_FRONTEND noninteractive
 #RUN apt install -y golang git curl  kali-tools-top10
 
 
+#RUN echo "deb http://http.kali.org/kali kali-rolling main non-free contrib" > /etc/apt/sources.list && \
+#echo "deb-src http://http.kali.org/kali kali-rolling main non-free contrib" >> /etc/apt/sources.list
+#RUN sed -i 's#http://archive.ubuntu.com/#http://tw.archive.ubuntu.com/#' /etc/apt/sources.list
 
 
 RUN sed -i 's#http://archive.ubuntu.com/ubuntu/#mirror://mirrors.ubuntu.com/mirrors.txt#' /etc/apt/sources.list;
@@ -63,10 +66,25 @@ RUN chmod +x /bin/tini
 
 # python library
 COPY rootfs/usr/local/lib/web/backend/requirements.txt /tmp/
+#RUN apt-get update \
+#    && dpkg-query -W -f='${Package}\n' > /tmp/a.txt \
+#    && apt-get install -y python3.8-dev python3-pip python3-dev build-essential \
+#	&& pip3 install setuptools wheel && pip3 install -r /tmp/requirements.txt \
+#    && ln -s /usr/bin/python3 /usr/local/bin/python \
+#    && dpkg-query -W -f='${Package}\n' > /tmp/b.txt \
+#    && apt-get remove -y `diff --changed-group-format='%>' --unchanged-group-format='' /tmp/a.txt /tmp/b.txt | xargs` \
+#    && apt-get autoclean -y \
+#    && apt-get autoremove -y \
+#    && rm -rf /var/lib/apt/lists/* \
+#    && rm -rf /var/cache/apt/* /tmp/a.txt /tmp/b.txt
+
+
+COPY rootfs/usr/local/lib/web/backend/requirements.txt /tmp/
 RUN apt-get update \
     && dpkg-query -W -f='${Package}\n' > /tmp/a.txt \
-    && apt-get install -y python3.8-dev python3-pip python3-dev build-essential \
-	&& pip3 install setuptools wheel && pip3 install -r /tmp/requirements.txt \
+    && apt-get install -y python3-dev python3-pip python3-dev build-essential
+
+RUN pip3 install setuptools wheel && pip3 install -r /tmp/requirements.txt \
     && ln -s /usr/bin/python3 /usr/local/bin/python \
     && dpkg-query -W -f='${Package}\n' > /tmp/b.txt \
     && apt-get remove -y `diff --changed-group-format='%>' --unchanged-group-format='' /tmp/a.txt /tmp/b.txt | xargs` \
@@ -74,7 +92,6 @@ RUN apt-get update \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /var/cache/apt/* /tmp/a.txt /tmp/b.txt
-
 
 ################################################################################
 # builder
@@ -103,6 +120,9 @@ COPY web /src/web
 RUN cd /src/web \
     && yarn \
     && yarn build
+
+#RUN tail -f /dev/null
+
 #RUN sed -i 's#app/locale/#novnc/app/locale/#' /src/web/dist/static/novnc/app/ui.js
 
 
@@ -114,18 +134,30 @@ FROM system
 LABEL maintainer="fcwu.tw@gmail.com"
 
 COPY --from=builder /src/web/dist/ /usr/local/lib/web/frontend/
-RUN id
 COPY rootfs /
-#RUN tail -f /dev/null
-COPY frontend/ /usr/local/lib/web/frontend/ 
+COPY frontend/ /usr/local/lib/web/frontend/
 RUN ls -R /usr/local/lib/web/
+
 #RUN tail -f /dev/null
 #RUN ln -sf /usr/local/lib/web/frontend/static/websockify /usr/local/lib/web/frontend/static/novnc/utils/websockify && \
 #	chmod +x /usr/local/lib/web/frontend/static/websockify/run
+
+ARG KALI_DESKTOP=xfce
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && \
+    apt-get install -y \
+        curl sudo apt-transport-https gnupg \
+        x11vnc xvfb novnc dbus-x11 \
+        kali-defaults kali-desktop-${KALI_DESKTOP} procps && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+ RUN apt-get update && apt-cache search kali-linux && apt-get install -y   \
+         kali-tools-top10
 
 EXPOSE 80
 WORKDIR /root
 ENV HOME=/home/ubuntu \
     SHELL=/bin/bash
 HEALTHCHECK --interval=30s --timeout=5s CMD curl --fail http://127.0.0.1:6079/api/health
+#RUN tail -f /dev/null
 ENTRYPOINT ["/startup.sh"]
