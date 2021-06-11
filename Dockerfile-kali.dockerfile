@@ -1,3 +1,5 @@
+# docker build -t packed4rmadillo/ubuntu-desktop-lxde-vnc:kali -f Dockerfile-kali.dockerfile .
+# docker run -p 80:80 packed4rmadillo/ubuntu-desktop-lxde-vnc:kali
 # Built with arch: amd64 flavor: lxde image: ubuntu:20.04
 #
 ################################################################################
