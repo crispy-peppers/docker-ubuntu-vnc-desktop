@@ -157,6 +157,25 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
  RUN apt-get update && apt-cache search kali-linux && apt-get install -y   \
          kali-tools-top10
 
+# Install additional tools
+RUN apt -y install nano iputils-ping hping3 traceroute ndiff putty-tools steghide tcpdump ettercap-graphical python3-pip recon-ng
+RUN pip3 install shodan
+
+# Maltego
+RUN wget https://maltego-downloads.s3.us-east-2.amazonaws.com/linux/Maltego.v4.2.18.13878.deb
+RUN dpkg -i Maltego*
+
+
+# PhoneInfoga
+RUN curl -sSL https://raw.githubusercontent.com/sundowndev/phoneinfoga/master/support/scripts/install | bash
+RUN ./phoneinfoga version
+RUN mv ./phoneinfoga /usr/bin/phoneinfoga
+
+# setoolkit
+RUN git clone https://github.com/trustedsec/social-engineer-toolkit setoolkit/
+RUN cd setoolkit && pip3 install -r requirements.txt && python setup.py install
+#RUN cp ./setoolkit /usr/bin
+
 EXPOSE 80
 WORKDIR /root
 ENV HOME=/home/ubuntu \
